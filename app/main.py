@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.db.database import engine, Base
 from app.api.auth import router as auth_router
+from app.api.scan import router as scan_router
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -28,3 +29,4 @@ def root():
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(scan_router)
