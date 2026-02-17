@@ -150,3 +150,45 @@ def test_get_scan_not_found():
         headers={"X-API-Key": api_key}
     )
     assert response.status_code == 404
+
+
+# Usage endpoint tests
+
+def test_usage_endpoint():
+    # Register
+    reg_response = client.post("/auth/register", json={"email": "usage@example.com"})
+    api_key = reg_response.json()["api_key"]
+
+    # Check initial usage
+    response = client.get("/usage", headers={"X-API-Key": api_key})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "usage@example.com"
+    assert data["plan"] == "FREE"
+    assert data["scans_used"] == 0
+    assert data["scans_remaining"] == 5
+    assert data["scans_limit"] == 5
+
+
+def test_usage_after_scan():
+    # Register
+    reg_response = client.post("/auth/register", json={"email": "usageafter@example.com"})
+    api_key = reg_response.json()["api_key"]
+
+    # Perform a scan
+    client.post(
+        "/scan",
+        json={"skill_url": "https://github.com/octocat/Hello-World"},
+        headers={"X-API-Key": api_key}
+    )
+
+    # Check usage after scan
+    response = client.get("/usage", headers={"X-API-Key": api_key})
+    data = response.json()
+    assert data["scans_used"] == 1
+    assert data["scans_remaining"] == 4
+
+
+def test_usage_requires_auth():
+    response = client.get("/usage")
+    assert response.status_code == 422  # Missing header
