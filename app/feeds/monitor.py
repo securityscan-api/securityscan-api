@@ -1,0 +1,89 @@
+from datetime import datetime
+from typing import Dict, Any, Optional
+from app.feeds.fetchers.nvd import NVDFetcher
+from app.feeds.fetchers.owasp_llm import OWASPLLMFetcher
+from app.feeds.proposal import ProposalGenerator
+from app.db.database import get_db
+from app.db.models import FeedSyncLog
+from app.config import get_settings
+
+
+class FeedsMonitor:
+    """Orchestrates security feed fetching and proposal generation."""
+
+    def __init__(self):
+        settings = get_settings()
+        self.nvd_fetcher = NVDFetcher(api_key=settings.nvd_api_key)
+        self.owasp_fetcher = OWASPLLMFetcher(api_key=settings.github_token)
+        self.proposal_generator = ProposalGenerator()
+
+    async def run_sync(self, source: str = "all") -> Dict[str, Any]:
+        """Run feed synchronization.
+
+        Args:
+            source: "all", "nvd", or "owasp_llm"
+
+        Returns:
+            Dict with sync results
+        """
+        results = {
+            "started_at": datetime.utcnow(),
+            "total_proposals": 0,
+            "sources": {},
+            "errors": {},
+        }
+
+        if source in ("all", "nvd"):
+            await self._sync_source("NVD", self.nvd_fetcher, results)
+
+        if source in ("all", "owasp_llm"):
+            await self._sync_source("OWASP_LLM", self.owasp_fetcher, results)
+
+        results["completed_at"] = datetime.utcnow()
+        return results
+
+    async def _sync_source(
+        self,
+        source_name: str,
+        fetcher,
+        results: Dict[str, Any]
+    ) -> None:
+        """Sync a single source and update results."""
+        started_at = datetime.utcnow()
+
+        try:
+            data = await fetcher.fetch()
+            created = self.proposal_generator.create_proposals_batch(source_name, data)
+
+            results["sources"][source_name] = {
+                "fetched": len(data),
+                "created": created,
+            }
+            results["total_proposals"] += len(data)
+
+            self._log_sync(source_name, "SUCCESS", created, None, started_at)
+
+        except Exception as e:
+            results["errors"][source_name] = str(e)
+            self._log_sync(source_name, "FAILED", 0, str(e), started_at)
+
+    def _log_sync(
+        self,
+        source: str,
+        status: str,
+        proposals_created: int,
+        error_message: Optional[str],
+        started_at: datetime,
+    ) -> None:
+        """Log sync operation to database."""
+        with get_db() as db:
+            log = FeedSyncLog(
+                source=source,
+                status=status,
+                proposals_created=proposals_created,
+                error_message=error_message,
+                started_at=started_at,
+                completed_at=datetime.utcnow(),
+            )
+            db.add(log)
+            db.commit()
