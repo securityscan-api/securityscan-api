@@ -52,3 +52,44 @@ class Certification(Base):
     score = Column(Integer, nullable=False)
     cert_hash = Column(String, nullable=False)
     certified_at = Column(DateTime, default=datetime.utcnow)
+
+
+class RuleProposal(Base):
+    __tablename__ = "rule_proposals"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    source = Column(String, nullable=False)  # NVD, OWASP_LLM
+    source_id = Column(String, nullable=False)  # CVE-2024-1234
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    severity = Column(String, nullable=False)  # CRITICAL, HIGH, MEDIUM, LOW
+    suggested_pattern = Column(String, nullable=True)
+    suggested_detector = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="PENDING")
+    reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ApprovedRule(Base):
+    __tablename__ = "approved_rules"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    proposal_id = Column(String, ForeignKey("rule_proposals.id"), nullable=False)
+    detector_type = Column(String, nullable=False)
+    pattern = Column(String, nullable=False)
+    severity = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class FeedSyncLog(Base):
+    __tablename__ = "feed_sync_logs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    source = Column(String, nullable=False)
+    status = Column(String, nullable=False)  # SUCCESS, FAILED
+    proposals_created = Column(Integer, default=0)
+    error_message = Column(String, nullable=True)
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
