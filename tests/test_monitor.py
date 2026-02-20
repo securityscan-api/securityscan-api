@@ -1,17 +1,17 @@
 import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.feeds.monitor import FeedsMonitor
+from app.feeds.monitor import FeedMonitor
 
 
 @pytest.mark.asyncio
 async def test_monitor_runs_all_fetchers():
-    """FeedsMonitor runs NVD and OWASP fetchers."""
+    """FeedMonitor runs NVD and OWASP fetchers."""
     with patch("app.feeds.monitor.get_settings") as mock_settings:
         mock_settings.return_value.nvd_api_key = ""
         mock_settings.return_value.github_token = ""
 
-        monitor = FeedsMonitor()
+        monitor = FeedMonitor()
 
         with patch.object(monitor.nvd_fetcher, "fetch", new_callable=AsyncMock) as nvd_mock, \
              patch.object(monitor.owasp_fetcher, "fetch", new_callable=AsyncMock) as owasp_mock, \
@@ -31,12 +31,12 @@ async def test_monitor_runs_all_fetchers():
 
 @pytest.mark.asyncio
 async def test_monitor_handles_fetcher_failure():
-    """FeedsMonitor continues if one fetcher fails."""
+    """FeedMonitor continues if one fetcher fails."""
     with patch("app.feeds.monitor.get_settings") as mock_settings:
         mock_settings.return_value.nvd_api_key = ""
         mock_settings.return_value.github_token = ""
 
-        monitor = FeedsMonitor()
+        monitor = FeedMonitor()
 
         with patch.object(monitor.nvd_fetcher, "fetch", new_callable=AsyncMock) as nvd_mock, \
              patch.object(monitor.owasp_fetcher, "fetch", new_callable=AsyncMock) as owasp_mock, \

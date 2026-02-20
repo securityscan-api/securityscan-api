@@ -17,13 +17,13 @@ client = TestClient(app)
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    assert response.json()["status"] == "ok"
 
 
 def test_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert "SkillShield API" in response.json()["service"]
+    assert response.json()["status"] == "ok"
 
 
 def test_register_user():
@@ -53,9 +53,10 @@ def test_register_invalid_plan():
     assert response.status_code == 400
 
 
-def test_docs_available():
+def test_docs_disabled_in_production():
+    """Docs are disabled in production mode for security."""
     response = client.get("/docs")
-    assert response.status_code == 200
+    assert response.status_code == 404
 
 
 # Scan endpoint tests

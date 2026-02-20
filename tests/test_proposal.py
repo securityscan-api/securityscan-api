@@ -16,7 +16,7 @@ def test_proposal_generator_creates_proposals():
         "suggested_detector": "cve_check",
     }
 
-    with patch("app.feeds.proposal.get_db") as mock_db:
+    with patch("app.feeds.proposal.get_db_context") as mock_db:
         mock_session = MagicMock()
         mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
@@ -40,7 +40,7 @@ def test_proposal_generator_skips_duplicates():
         "suggested_detector": "cve_check",
     }
 
-    with patch("app.feeds.proposal.get_db") as mock_db:
+    with patch("app.feeds.proposal.get_db_context") as mock_db:
         mock_session = MagicMock()
         mock_db.return_value.__enter__ = MagicMock(return_value=mock_session)
         mock_db.return_value.__exit__ = MagicMock(return_value=False)

