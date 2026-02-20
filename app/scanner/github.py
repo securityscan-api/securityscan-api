@@ -10,7 +10,8 @@ class GitHubFetcher:
     def __init__(self):
         self.client = httpx.AsyncClient(
             headers={"Accept": "application/vnd.github.v3+json"},
-            timeout=30.0
+            timeout=30.0,
+            follow_redirects=True
         )
 
     def parse_url(self, url: str) -> Tuple[str, str]:

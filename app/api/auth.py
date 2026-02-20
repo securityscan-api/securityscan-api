@@ -4,6 +4,11 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db.crud import create_user, get_user_by_email
 from app.dependencies import get_remaining_scans
+from app.payments.stripe import StripeService
+from app.config import get_settings
+
+stripe_service = StripeService()
+settings = get_settings()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -33,6 +38,17 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
 
     # Create user
     user = create_user(db, request.email, request.plan)
+
+    # Create Stripe customer if Stripe is configured
+    if settings.stripe_secret_key:
+        try:
+            customer_id = stripe_service.create_customer(request.email)
+            if customer_id:
+                user.stripe_customer_id = customer_id
+                db.commit()
+        except Exception:
+            pass  # Continue without Stripe if it fails
+
     remaining = get_remaining_scans(user, db)
 
     return RegisterResponse(

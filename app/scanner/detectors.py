@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass, asdict
-from typing import List
+from typing import List, Optional
+from sqlalchemy.orm import Session
 
 
 @dataclass
@@ -199,7 +200,45 @@ def detect_docker_misconfig(content: str, filename: str) -> List[Issue]:
     return issues
 
 
-def run_all_static_detectors(code: str, filename: str) -> List[Issue]:
+def run_dynamic_rules(code: str, filename: str, db: Optional[Session] = None) -> List[Issue]:
+    """Run approved dynamic rules from the database."""
+    issues = []
+
+    if db is None:
+        return issues
+
+    try:
+        from app.db.models import ApprovedRule
+
+        active_rules = db.query(ApprovedRule).filter(ApprovedRule.is_active == True).all()
+
+        for rule in active_rules:
+            if not rule.pattern:
+                continue
+
+            try:
+                for match in re.finditer(rule.pattern, code, re.IGNORECASE):
+                    line_num = find_line_number(code, match.start())
+                    snippet = code[match.start():match.start()+60].replace('\n', ' ')
+                    issues.append(Issue(
+                        type=rule.detector_type,
+                        severity=rule.severity,
+                        line=line_num,
+                        description=f"{rule.description} (dynamic rule)",
+                        snippet=snippet
+                    ))
+            except re.error:
+                # Invalid regex pattern, skip this rule
+                continue
+
+    except Exception:
+        # If we can't load rules, continue without them
+        pass
+
+    return issues
+
+
+def run_all_static_detectors(code: str, filename: str, db: Optional[Session] = None) -> List[Issue]:
     """Run all static analysis detectors on code."""
     issues = []
 
@@ -212,5 +251,8 @@ def run_all_static_detectors(code: str, filename: str) -> List[Issue]:
     # PentAGI detectors (for config files)
     issues.extend(detect_env_secrets(code, filename))
     issues.extend(detect_docker_misconfig(code, filename))
+
+    # Dynamic rules from database
+    issues.extend(run_dynamic_rules(code, filename, db))
 
     return issues

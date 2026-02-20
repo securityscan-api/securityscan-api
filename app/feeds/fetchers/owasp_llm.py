@@ -1,8 +1,11 @@
+import asyncio
+import logging
 import httpx
-import hashlib
 from datetime import datetime
 from typing import List, Dict, Any
 from app.feeds.fetchers.base import BaseFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class OWASPLLMFetcher(BaseFetcher):
@@ -11,6 +14,7 @@ class OWASPLLMFetcher(BaseFetcher):
     REPO_OWNER = "OWASP"
     REPO_NAME = "www-project-llm-top-10"
     API_BASE = "https://api.github.com"
+    RETRY_DELAYS = [5, 30, 120]  # Exponential backoff
 
     # Mapping of OWASP LLM categories to severity
     SEVERITY_MAP = {
@@ -32,7 +36,7 @@ class OWASPLLMFetcher(BaseFetcher):
         return self._parse_commits(commits)
 
     async def _get_commits(self, since: datetime | None) -> List[Dict[str, Any]]:
-        """Get commits from GitHub API."""
+        """Get commits from GitHub API with retry logic."""
         url = f"{self.API_BASE}/repos/{self.REPO_OWNER}/{self.REPO_NAME}/commits"
         headers = {"Accept": "application/vnd.github.v3+json"}
         if self.api_key:
@@ -42,13 +46,20 @@ class OWASPLLMFetcher(BaseFetcher):
         if since:
             params["since"] = since.isoformat()
 
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(url, headers=headers, params=params)
-                resp.raise_for_status()
-                return resp.json()
-        except httpx.HTTPError:
-            return []
+        for attempt, delay in enumerate(self.RETRY_DELAYS):
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    resp = await client.get(url, headers=headers, params=params)
+                    resp.raise_for_status()
+                    return resp.json()
+            except httpx.HTTPError as e:
+                logger.warning(f"OWASP fetch attempt {attempt + 1} failed: {e}")
+                if attempt == len(self.RETRY_DELAYS) - 1:
+                    logger.error(f"OWASP fetch failed after {len(self.RETRY_DELAYS)} attempts")
+                    return []
+                await asyncio.sleep(delay)
+
+        return []
 
     def _parse_commits(self, commits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Parse commits into proposal format."""

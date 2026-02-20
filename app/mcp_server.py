@@ -33,7 +33,8 @@ mcp = FastMCP(
     - Privilege escalation risks
     - Prompt injection vulnerabilities
     """,
-    json_response=True
+    json_response=True,
+    streamable_http_path="/",  # Mount at / so full path is /mcp when mounted at /mcp
 )
 
 

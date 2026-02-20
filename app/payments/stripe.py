@@ -17,8 +17,8 @@ class StripeService:
         self,
         customer_id: str,
         plan: str,
-        success_url: str = "https://skillshield.ai/success",
-        cancel_url: str = "https://skillshield.ai/cancel"
+        success_url: str = "https://securityscan.ai/success",
+        cancel_url: str = "https://securityscan.ai/cancel"
     ) -> str:
         """Create checkout session and return URL."""
         if not settings.stripe_secret_key:
@@ -43,7 +43,7 @@ class StripeService:
                 "price_data": {
                     "currency": config["currency"],
                     "unit_amount": config["amount"],
-                    "product_data": {"name": f"SkillShield {plan}"},
+                    "product_data": {"name": f"SecurityScan {plan}"},
                     **({"recurring": config["recurring"]} if "recurring" in config else {})
                 },
                 "quantity": 1

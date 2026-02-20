@@ -1,8 +1,13 @@
 import json
+import logging
 import httpx
-from typing import List
+from typing import List, Tuple
 from app.config import get_settings
 from app.scanner.detectors import Issue
+
+logger = logging.getLogger(__name__)
+
+MAX_CODE_SIZE = 8000  # Characters limit for DeepSeek analysis
 
 
 ANALYSIS_PROMPT = '''Analyze this code/configuration for security vulnerabilities.
@@ -47,8 +52,17 @@ class DeepSeekAnalyzer:
 
     async def analyze(self, code: str, filename: str) -> List[Issue]:
         """Analyze code using DeepSeek for semantic security issues."""
-        # Limit code size to avoid token limits
-        code_truncated = code[:8000] if len(code) > 8000 else code
+        issues = []
+        was_truncated = False
+
+        # Check if code needs truncation
+        if len(code) > MAX_CODE_SIZE:
+            was_truncated = True
+            code_truncated = code[:MAX_CODE_SIZE]
+            logger.warning(f"Code truncated from {len(code)} to {MAX_CODE_SIZE} chars for {filename}")
+        else:
+            code_truncated = code
+
         prompt = ANALYSIS_PROMPT.format(code=code_truncated, filename=filename)
 
         try:
@@ -85,7 +99,6 @@ class DeepSeekAnalyzer:
 
             # Parse JSON response
             result = json.loads(content)
-            issues = []
 
             for item in result.get("issues", []):
                 issues.append(Issue(
@@ -96,19 +109,24 @@ class DeepSeekAnalyzer:
                     snippet=""
                 ))
 
-            return issues
-
         except json.JSONDecodeError as e:
-            # If DeepSeek doesn't return valid JSON, return empty
-            print(f"DeepSeek JSON parse error: {e}")
-            return []
+            logger.error(f"DeepSeek JSON parse error for {filename}: {e}")
         except httpx.HTTPStatusError as e:
-            print(f"DeepSeek HTTP error: {e}")
-            return []
+            logger.error(f"DeepSeek HTTP error for {filename}: {e.response.status_code}")
         except Exception as e:
-            # Log error but don't fail scan
-            print(f"DeepSeek analysis error: {e}")
-            return []
+            logger.error(f"DeepSeek analysis error for {filename}: {e}")
+
+        # Add warning if code was truncated
+        if was_truncated:
+            issues.append(Issue(
+                type="partial_analysis",
+                severity="LOW",
+                line=0,
+                description=f"⚠️ Analysis was partial: file exceeded {MAX_CODE_SIZE} characters. Only the first {MAX_CODE_SIZE} characters were analyzed. Some vulnerabilities may not have been detected.",
+                snippet=f"File size: {len(code)} chars, analyzed: {MAX_CODE_SIZE} chars"
+            ))
+
+        return issues
 
     async def close(self):
         await self.client.aclose()
