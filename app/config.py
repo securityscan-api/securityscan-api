@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # External APIs (optional)
     nvd_api_key: str = ""
     github_token: str = ""
+    anthropic_api_key: str = ""  # Fallback when DeepSeek fails
 
     # Schedule
     feed_sync_hour: int = 3  # 3am UTC

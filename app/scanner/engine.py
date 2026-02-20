@@ -1,8 +1,13 @@
 import time
+import logging
 from dataclasses import dataclass, asdict
-from typing import List
+
+logger = logging.getLogger(__name__)
+from typing import List, Optional
+from sqlalchemy.orm import Session
 from app.scanner.github import GitHubFetcher
 from app.scanner.deepseek import DeepSeekAnalyzer
+from app.scanner.claude import ClaudeAnalyzer
 from app.scanner.detectors import Issue, run_all_static_detectors
 
 
@@ -31,6 +36,7 @@ class SkillScanner:
     def __init__(self):
         self.github = GitHubFetcher()
         self.deepseek = DeepSeekAnalyzer()
+        self.claude = ClaudeAnalyzer()
 
     def calculate_score(self, issues: List[Issue]) -> int:
         """Calculate security score based on issues found."""
@@ -49,7 +55,7 @@ class SkillScanner:
         else:
             return "DANGEROUS"
 
-    async def scan(self, skill_url: str) -> ScanResult:
+    async def scan(self, skill_url: str, db: Optional[Session] = None) -> ScanResult:
         """Perform full security scan on a skill/repo."""
         start_time = time.time()
         all_issues: List[Issue] = []
@@ -60,12 +66,12 @@ class SkillScanner:
 
             # Run analysis on each file
             for filepath, content in files.items():
-                # Static analysis (regex-based detectors)
-                static_issues = run_all_static_detectors(content, filepath)
+                # Static analysis (regex-based detectors + dynamic rules)
+                static_issues = run_all_static_detectors(content, filepath, db)
                 all_issues.extend(static_issues)
 
-                # Semantic analysis (DeepSeek)
-                semantic_issues = await self.deepseek.analyze(content, filepath)
+                # Semantic analysis: DeepSeek primary, Claude Haiku fallback
+                semantic_issues = await self._semantic_analyze(content, filepath)
                 all_issues.extend(semantic_issues)
 
         except Exception as e:
@@ -99,6 +105,24 @@ class SkillScanner:
             scan_time_ms=scan_time_ms
         )
 
+    async def _semantic_analyze(self, code: str, filename: str) -> List[Issue]:
+        """Try DeepSeek first, fall back to Claude Haiku on failure."""
+        try:
+            issues = await self.deepseek.analyze(code, filename)
+            # If DeepSeek returned results (even empty), use them
+            return issues
+        except Exception as e:
+            logger.warning(f"DeepSeek failed for {filename}, trying Claude fallback: {e}")
+
+        if self.claude.is_available():
+            try:
+                return await self.claude.analyze(code, filename)
+            except Exception as e:
+                logger.error(f"Claude fallback also failed for {filename}: {e}")
+
+        return []
+
     async def close(self):
         await self.github.close()
         await self.deepseek.close()
+        await self.claude.close()
