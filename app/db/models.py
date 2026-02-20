@@ -1,7 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, JSON
 from app.db.database import Base
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 def generate_uuid():
@@ -16,7 +20,7 @@ class User(Base):
     api_key_hash = Column(String, unique=True, nullable=False)
     plan = Column(String, nullable=False, default="FREE")
     stripe_customer_id = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class Scan(Base):
@@ -29,7 +33,7 @@ class Scan(Base):
     recommendation = Column(String, nullable=False)
     issues_json = Column(JSON, nullable=True)
     scan_time_ms = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class UsageLog(Base):
@@ -40,7 +44,7 @@ class UsageLog(Base):
     action = Column(String, nullable=False)
     billed = Column(Boolean, default=False)
     amount_cents = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class Certification(Base):
@@ -51,7 +55,7 @@ class Certification(Base):
     scan_id = Column(String, ForeignKey("scans.id"), nullable=False)
     score = Column(Integer, nullable=False)
     cert_hash = Column(String, nullable=False)
-    certified_at = Column(DateTime, default=datetime.utcnow)
+    certified_at = Column(DateTime, default=_utcnow)
 
 
 class RuleProposal(Base):
@@ -67,7 +71,7 @@ class RuleProposal(Base):
     suggested_detector = Column(String, nullable=True)
     status = Column(String, nullable=False, default="PENDING")
     reviewed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class ApprovedRule(Base):
@@ -80,7 +84,7 @@ class ApprovedRule(Base):
     severity = Column(String, nullable=False)
     description = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class FeedSyncLog(Base):

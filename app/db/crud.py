@@ -1,6 +1,6 @@
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from app.db.models import User, Scan, UsageLog, Certification
 from app.config import get_settings
@@ -66,7 +66,7 @@ def get_scan_by_id(db: Session, scan_id: str) -> Scan | None:
 
 
 def get_cached_scan(db: Session, skill_url: str, max_age_hours: int = 24) -> Scan | None:
-    cutoff = datetime.utcnow() - timedelta(hours=max_age_hours)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
     return db.query(Scan).filter(
         Scan.skill_url == skill_url,
         Scan.created_at > cutoff
@@ -74,7 +74,7 @@ def get_cached_scan(db: Session, skill_url: str, max_age_hours: int = 24) -> Sca
 
 
 def count_user_scans_this_month(db: Session, user_id: str) -> int:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     return db.query(Scan).filter(
         Scan.user_id == user_id,
@@ -91,3 +91,14 @@ def log_usage(db: Session, user_id: str, action: str, billed: bool = False, amou
     )
     db.add(log)
     db.commit()
+
+
+def get_usage_count(db: Session, user_id: str, action: str = "SCAN") -> int:
+    """Count usage entries for user this month."""
+    now = datetime.now(timezone.utc)
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return db.query(UsageLog).filter(
+        UsageLog.user_id == user_id,
+        UsageLog.action == action,
+        UsageLog.timestamp >= start_of_month
+    ).count()

@@ -1,7 +1,11 @@
+import asyncio
+import logging
 import httpx
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from app.feeds.fetchers.base import BaseFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class NVDFetcher(BaseFetcher):
@@ -13,12 +17,12 @@ class NVDFetcher(BaseFetcher):
     async def fetch(self, since: datetime | None = None) -> List[Dict[str, Any]]:
         """Fetch critical CVEs from NVD API."""
         if since is None:
-            since = datetime.utcnow() - timedelta(days=7)
+            since = datetime.now(timezone.utc) - timedelta(days=7)
 
         params = {
             "cvssV3Severity": "CRITICAL",
             "pubStartDate": since.strftime("%Y-%m-%dT%H:%M:%S.000"),
-            "pubEndDate": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000"),
+            "pubEndDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000"),
         }
 
         response = await self._make_request(params)
@@ -37,9 +41,10 @@ class NVDFetcher(BaseFetcher):
                     resp.raise_for_status()
                     return resp.json()
             except httpx.HTTPError as e:
+                logger.warning(f"NVD fetch attempt {attempt + 1} failed: {e}")
                 if attempt == len(self.RETRY_DELAYS) - 1:
+                    logger.error(f"NVD fetch failed after {len(self.RETRY_DELAYS)} attempts")
                     raise
-                import asyncio
                 await asyncio.sleep(delay)
 
         return {"vulnerabilities": []}

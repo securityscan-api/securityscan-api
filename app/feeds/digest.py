@@ -1,7 +1,7 @@
 """Email digest for pending rule proposals."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -97,7 +97,7 @@ class DigestSender:
     </div>
 </body>
 </html>
-""" % datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+""" % datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
 
         return html
 
@@ -124,7 +124,7 @@ class DigestSender:
                 lines.append(f"  Source: {p.source} | {p.source_id}")
                 lines.append(f"  {p.description[:100]}...")
 
-        lines.append(f"\n\nGenerated on {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC")
+        lines.append(f"\n\nGenerated on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC")
         return "\n".join(lines)
 
     async def send_digest(self) -> dict:

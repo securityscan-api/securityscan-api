@@ -1,6 +1,6 @@
 from typing import Dict, Any
-from datetime import datetime
-from app.db.database import get_db
+from datetime import datetime, timezone
+from app.db.database import get_db_context
 from app.db.models import RuleProposal
 
 
@@ -12,7 +12,7 @@ class ProposalGenerator:
 
         Returns True if created, False if duplicate.
         """
-        with get_db() as db:
+        with get_db_context() as db:
             # Check for duplicate
             existing = db.query(RuleProposal).filter(
                 RuleProposal.source_id == data["source_id"]
@@ -30,7 +30,7 @@ class ProposalGenerator:
                 suggested_pattern=data.get("suggested_pattern"),
                 suggested_detector=data.get("suggested_detector"),
                 status="PENDING",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             db.add(proposal)
             db.commit()

@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 
@@ -8,8 +8,11 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_publishable_key: str = ""
     stripe_webhook_secret: str = ""
-    database_url: str = "sqlite:///./skillshield.db"
+    database_url: str = "sqlite:///./securityscan.db"
     api_key_prefix: str = "ss_live_"
+
+    # API Host (for callback URLs)
+    api_host: str = "194.60.87.137"
 
     # Admin
     admin_secret: str = ""
@@ -30,8 +33,7 @@ class Settings(BaseSettings):
     digest_day: int = 0  # Monday
     digest_hour: int = 9  # 9am
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 @lru_cache

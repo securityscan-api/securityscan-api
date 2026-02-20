@@ -2,10 +2,10 @@
 
 import secrets
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -86,8 +86,7 @@ class ProposalResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProposalsListResponse(BaseModel):
@@ -167,7 +166,7 @@ def review_proposals(
 
         if decision.action == "APPROVE":
             proposal.status = "APPROVED"
-            proposal.reviewed_at = datetime.utcnow()
+            proposal.reviewed_at = datetime.now(timezone.utc)
 
             # Create ApprovedRule
             pattern = decision.pattern_override or proposal.suggested_pattern or ""
@@ -184,7 +183,7 @@ def review_proposals(
 
         elif decision.action == "REJECT":
             proposal.status = "REJECTED"
-            proposal.reviewed_at = datetime.utcnow()
+            proposal.reviewed_at = datetime.now(timezone.utc)
             rejected += 1
 
     db.commit()
