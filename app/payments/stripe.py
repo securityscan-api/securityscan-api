@@ -49,8 +49,8 @@ class StripeService:
                 "quantity": 1
             }],
             mode=mode,
-            success_url=success_url,
-            cancel_url=cancel_url,
+            success_url=success_url or f"https://apisecurityscan.net/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=cancel_url or f"https://apisecurityscan.net/billing/cancelled",
             metadata={"plan": plan}
         )
         return session.url

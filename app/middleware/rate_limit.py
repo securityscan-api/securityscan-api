@@ -38,10 +38,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Get rate limit key and tier
         api_key = request.headers.get("X-API-Key")
-        admin_key = request.headers.get("X-Admin-Key")
 
-        # Admin requests bypass rate limiting
-        if admin_key:
+        # Admin requests bypass rate limiting (admin uses Authorization: Bearer)
+        auth_header = request.headers.get("Authorization", "")
+        if request.url.path.startswith("/_s/") and auth_header.startswith("Bearer "):
             return await call_next(request)
 
         # Get client IP (handle None for test environments)

@@ -8,6 +8,7 @@ from app.db.crud import create_scan, get_cached_scan, get_scan_by_id, log_usage
 from app.db.models import User, Certification, Scan
 from app.dependencies import get_current_user, check_scan_limit, get_remaining_scans
 from app.scanner.engine import SkillScanner
+from app.config import get_settings
 
 router = APIRouter(tags=["scan"])
 
@@ -59,12 +60,42 @@ async def scan_skill(
 
     # Check scan limit for non-cached scans
     if not check_scan_limit(user, db):
+        from app.payments.stripe import StripeService
+        stripe_service = StripeService()
+        settings = get_settings()
+
+        # Generate customer-specific checkout URL so webhook can link payment to this agent
+        checkout_url = None
+        if settings.stripe_secret_key and user.stripe_customer_id:
+            try:
+                checkout_url = stripe_service.create_checkout_session(
+                    customer_id=user.stripe_customer_id,
+                    plan="PAY_PER_SCAN"
+                )
+            except Exception:
+                pass
+
         raise HTTPException(
             status_code=402,
             detail={
                 "error": "scan_limit_reached",
-                "message": "You've used your free scans. Upgrade to continue.",
-                "upgrade_url": "/upgrade"
+                "message": "Free tier exhausted (5 scans/month). Upgrade to continue.",
+                "upgrade": {
+                    "pay_per_scan": {
+                        "price": "$0.10/scan",
+                        "checkout_url": checkout_url or f"https://apisecurityscan.net/billing/upgrade"
+                    },
+                    "pro": {
+                        "price": "$20/month unlimited",
+                        "checkout_url": f"https://apisecurityscan.net/billing/upgrade"
+                    }
+                },
+                "agent_instructions": (
+                    "1. POST /billing/upgrade with X-API-Key to get a customer-specific checkout_url. "
+                    "2. Complete payment at checkout_url. "
+                    "3. Poll GET /billing/status until plan != FREE (webhook upgrades automatically). "
+                    "4. Retry scan."
+                )
             }
         )
 

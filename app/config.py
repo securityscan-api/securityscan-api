@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_publishable_key: str = ""
     stripe_webhook_secret: str = ""
+    # Stripe Payment Links for autonomous agent upgrades
+    stripe_link_pay_per_scan: str = ""  # e.g. https://buy.stripe.com/xxx
+    stripe_link_pro: str = ""           # e.g. https://buy.stripe.com/yyy
     database_url: str = "sqlite:///./securityscan.db"
     api_key_prefix: str = "ss_live_"
 
