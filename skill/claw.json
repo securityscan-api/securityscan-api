@@ -1,0 +1,14 @@
+{
+  "name": "securityscan",
+  "version": "1.0.0",
+  "description": "Scan any OpenClaw/ClawHub skill for security vulnerabilities before installing. Detects prompt injection, data exfiltration, credential theft, and RCE risks. Protect yourself and your users.",
+  "author": "securityscan",
+  "license": "MIT",
+  "permissions": ["network"],
+  "entry": "instructions.md",
+  "tags": ["security", "safety", "verification", "audit", "protection", "skills", "clawhub"],
+  "models": ["claude-*", "gpt-*", "gemini-*"],
+  "minOpenClawVersion": "0.8.0",
+  "homepage": "https://apisecurityscan.net",
+  "repository": "https://github.com/securityscan-api/securityscan-openclaw-skill"
+}
