@@ -6,59 +6,37 @@ stripe.api_key = settings.stripe_secret_key
 
 
 class StripeService:
-    def create_customer(self, email: str) -> str:
-        """Create Stripe customer and return ID."""
-        if not settings.stripe_secret_key:
-            return ""  # Skip if no Stripe key configured
-        customer = stripe.Customer.create(email=email)
-        return customer.id
+  def create_customer(self, email: str) -> str:
+      if not settings.stripe_secret_key:
+          return ""
+      customer = stripe.Customer.create(email=email)
+      return customer.id
 
-    def create_checkout_session(
-        self,
-        customer_id: str,
-        plan: str,
-        success_url: str = "https://securityscan.ai/success",
-        cancel_url: str = "https://securityscan.ai/cancel"
-    ) -> str:
-        """Create checkout session and return URL."""
-        if not settings.stripe_secret_key:
-            return ""
+  def create_checkout_session(self, customer_id: str, plan: str,
+      success_url: str = "https://apisecurityscan.net/billing/success",
+      cancel_url: str = "https://apisecurityscan.net/billing/cancelled") -> str:
+      if not settings.stripe_secret_key:
+          return ""
+      price_map = {
+          "PRO": {"price_id": settings.stripe_price_pro, "mode": "subscription"},
+          "PAY_PER_SCAN": {"price_id": settings.stripe_price_pay_per_scan, "mode": "payment"},
+      }
+      config = price_map.get(plan)
+      if not config or not config["price_id"]:
+          raise ValueError(f"Unknown or unconfigured plan: {plan}")
+      session = stripe.checkout.Session.create(
+          customer=customer_id,
+          payment_method_types=["card"],
+          line_items=[{"price": config["price_id"], "quantity": 1}],
+          mode=config["mode"],
+          success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
+          cancel_url=cancel_url,
+          metadata={"plan": plan}
+      )
+      return session.url
 
-        # Price configurations - these would be created in Stripe dashboard
-        price_configs = {
-            "PRO": {"amount": 2000, "currency": "usd", "recurring": {"interval": "month"}},
-            "PAY_PER_SCAN": {"amount": 10, "currency": "usd"},  # $0.10
-        }
-
-        config = price_configs.get(plan)
-        if not config:
-            raise ValueError(f"Unknown plan: {plan}")
-
-        mode = "subscription" if plan == "PRO" else "payment"
-
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": config["currency"],
-                    "unit_amount": config["amount"],
-                    "product_data": {"name": f"SecurityScan {plan}"},
-                    **({"recurring": config["recurring"]} if "recurring" in config else {})
-                },
-                "quantity": 1
-            }],
-            mode=mode,
-            success_url=success_url or f"https://apisecurityscan.net/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=cancel_url or f"https://apisecurityscan.net/billing/cancelled",
-            metadata={"plan": plan}
-        )
-        return session.url
-
-    def handle_webhook_event(self, payload: bytes, sig_header: str) -> dict:
-        """Verify and parse Stripe webhook."""
-        endpoint_secret = settings.stripe_webhook_secret
-        if not endpoint_secret:
-            raise ValueError("Stripe webhook secret not configured")
-        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        return event
+  def handle_webhook_event(self, payload: bytes, sig_header: str) -> dict:
+      endpoint_secret = settings.stripe_webhook_secret
+      if not endpoint_secret:
+          raise ValueError("Stripe webhook secret not configured")
+      return stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
