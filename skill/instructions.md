@@ -58,6 +58,7 @@ X-API-Key: <SECURITYSCAN_API_KEY>
 {"plan": "PAY_PER_SCAN"}
 ```
 Response: `{"checkout_url": "https://checkout.stripe.com/...", "plan": "PAY_PER_SCAN"}`
+Note: PAY_PER_SCAN purchases a pack of 5 scans (MXN $10 minimum).
 
 **Step 4b** — Complete payment at `checkout_url` using your configured payment method.
 
