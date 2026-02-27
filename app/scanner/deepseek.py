@@ -111,10 +111,13 @@ class DeepSeekAnalyzer:
 
         except json.JSONDecodeError as e:
             logger.error(f"DeepSeek JSON parse error for {filename}: {e}")
+            # Don't re-raise: DeepSeek ran but returned bad JSON; static results still valid
         except httpx.HTTPStatusError as e:
             logger.error(f"DeepSeek HTTP error for {filename}: {e.response.status_code}")
+            raise  # Re-raise so engine.py can invoke Claude fallback
         except Exception as e:
             logger.error(f"DeepSeek analysis error for {filename}: {e}")
+            raise  # Re-raise so engine.py can invoke Claude fallback
 
         # Add warning if code was truncated
         if was_truncated:

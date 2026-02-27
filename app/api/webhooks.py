@@ -18,9 +18,9 @@ async def stripe_webhook(request: Request):
     if not sig_header:
         raise HTTPException(status_code=400, detail="Missing stripe-signature header")
 
-    # If no webhook secret configured, just acknowledge
+    # Webhook secret is required — never process unverified events
     if not settings.stripe_webhook_secret:
-        return {"status": "webhook_secret_not_configured"}
+        raise HTTPException(status_code=500, detail="Webhook not configured")
 
     try:
         event = stripe_service.handle_webhook_event(payload, sig_header)
@@ -34,7 +34,10 @@ async def stripe_webhook(request: Request):
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
             customer_id = session.get("customer")
-            plan = session.get("metadata", {}).get("plan", "PRO")
+            plan = session.get("metadata", {}).get("plan")
+            valid_plans = {"PAY_PER_SCAN", "PRO"}
+            if plan not in valid_plans:
+                return {"status": "ignored", "reason": "invalid_plan"}
 
             # Update user plan
             if customer_id:

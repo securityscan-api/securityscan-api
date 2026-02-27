@@ -13,10 +13,12 @@ PLAN_LIMITS = {
 
 
 async def get_current_user(
-    x_api_key: str = Header(..., alias="X-API-Key"),
+    x_api_key: str | None = Header(None, alias="X-API-Key"),
     db: Session = Depends(get_db)
 ) -> User:
     """Validate API key and return user."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key required")
     user = get_user_by_api_key(db, x_api_key)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid API key")

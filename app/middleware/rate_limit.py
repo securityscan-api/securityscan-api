@@ -39,9 +39,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Get rate limit key and tier
         api_key = request.headers.get("X-API-Key")
 
-        # Admin requests bypass rate limiting (admin uses Authorization: Bearer)
-        auth_header = request.headers.get("Authorization", "")
-        if request.url.path.startswith("/_s/") and auth_header.startswith("Bearer "):
+        # Admin endpoints have their own auth — apply strict IP rate limiting (30/min)
+        # Do NOT bypass rate limiting for admin endpoints
+        if request.url.path.startswith("/_s/"):
+            client_ip = request.client.host if request.client else "test"
+            key = f"admin_ip:{client_ip}"
+            limit = 30
+            now = time.time()
+            window_start = now - 60
+            self.requests[key] = [t for t in self.requests[key] if t > window_start]
+            if len(self.requests[key]) >= limit:
+                raise HTTPException(status_code=429, detail={"error": "rate_limit_exceeded"})
+            self.requests[key].append(now)
             return await call_next(request)
 
         # Get client IP (handle None for test environments)

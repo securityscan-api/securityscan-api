@@ -72,7 +72,7 @@ def create_upgrade_session(
         db.commit()
 
     # Generate callback URLs (API returns JSON, no landing page needed)
-    base_url = f"https://{settings.api_host}" if hasattr(settings, 'api_host') else "https://194.60.87.137"
+    base_url = f"https://{settings.api_host}" if hasattr(settings, 'api_host') else "https://apisecurityscan.net"
     success_url = f"{base_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{base_url}/billing/cancelled"
 
@@ -115,7 +115,7 @@ def get_billing_portal(
         )
 
     try:
-        base_url = f"https://{settings.api_host}" if hasattr(settings, 'api_host') else "https://194.60.87.137"
+        base_url = f"https://{settings.api_host}" if hasattr(settings, 'api_host') else "https://apisecurityscan.net"
         session = stripe.billing_portal.Session.create(
             customer=user.stripe_customer_id,
             return_url=f"{base_url}/billing/status"

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     api_key_prefix: str = "ss_live_"
 
     # API Host (for callback URLs)
-    api_host: str = "194.60.87.137"
+    api_host: str = "apisecurityscan.net"
 
     # Admin
     admin_secret: str = ""

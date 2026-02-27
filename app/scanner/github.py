@@ -8,18 +8,27 @@ class GitHubFetcher:
     RAW_URL = "https://raw.githubusercontent.com"
 
     def __init__(self):
+        from app.config import get_settings
+        settings = get_settings()
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if settings.github_token:
+            headers["Authorization"] = f"token {settings.github_token}"
         self.client = httpx.AsyncClient(
-            headers={"Accept": "application/vnd.github.v3+json"},
+            headers=headers,
             timeout=30.0,
             follow_redirects=True
         )
 
     def parse_url(self, url: str) -> Tuple[str, str]:
-        """Extract owner and repo from GitHub URL."""
-        pattern = r"github\.com/([^/]+)/([^/]+)"
-        match = re.search(pattern, url)
+        """Extract owner and repo from GitHub URL. Only github.com is allowed."""
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        if parsed.scheme not in ("https", "http") or parsed.netloc.lower() != "github.com":
+            raise ValueError(f"Only github.com URLs are supported, got: {url}")
+        pattern = r"^/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)"
+        match = re.match(pattern, parsed.path)
         if not match:
-            raise ValueError(f"Invalid GitHub URL: {url}")
+            raise ValueError(f"Invalid GitHub repository URL: {url}")
         return match.group(1), match.group(2)
 
     async def fetch_file_list(self, owner: str, repo: str, path: str = "") -> list:

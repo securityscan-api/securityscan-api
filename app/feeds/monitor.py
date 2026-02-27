@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from app.feeds.fetchers.nvd import NVDFetcher
 from app.feeds.fetchers.owasp_llm import OWASPLLMFetcher
+from app.feeds.fetchers.osv import OSVFetcher
+from app.feeds.fetchers.github_advisory import GitHubAdvisoryFetcher
 from app.feeds.proposal import ProposalGenerator
 from app.db.database import get_db_context
 from app.db.models import FeedSyncLog
@@ -15,6 +17,8 @@ class FeedMonitor:
         settings = get_settings()
         self.nvd_fetcher = NVDFetcher(api_key=settings.nvd_api_key)
         self.owasp_fetcher = OWASPLLMFetcher(api_key=settings.github_token)
+        self.osv_fetcher = OSVFetcher()
+        self.github_advisory_fetcher = GitHubAdvisoryFetcher(api_key=settings.github_token)
         self.proposal_generator = ProposalGenerator()
 
     async def sync_all(self) -> Dict[str, Any]:
@@ -42,6 +46,12 @@ class FeedMonitor:
 
         if source in ("all", "owasp_llm"):
             await self._sync_source("OWASP_LLM", self.owasp_fetcher, results)
+
+        if source in ("all", "osv"):
+            await self._sync_source("OSV", self.osv_fetcher, results)
+
+        if source in ("all", "github_advisory"):
+            await self._sync_source("GITHUB_ADVISORY", self.github_advisory_fetcher, results)
 
         results["completed_at"] = datetime.now(timezone.utc)
         return results

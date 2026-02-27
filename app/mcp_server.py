@@ -272,7 +272,25 @@ def get_stats() -> str:
 # Export for integration with FastAPI
 def get_mcp_app():
     """Get the MCP ASGI app for mounting."""
-    return mcp.streamable_http_app()
+    mcp_asgi = mcp.streamable_http_app()
+
+    async def host_header_fix(scope, receive, send):
+        """Rewrite Host header so MCP DNS-rebinding protection accepts requests.
+
+        FastMCP rejects any Host that isn't localhost (HTTP 421).
+        Requests arrive via Nginx with Host: apisecurityscan.net, so we
+        rewrite to localhost before the MCP transport sees the request.
+        """
+        if scope["type"] in ("http", "websocket"):
+            new_headers = [
+                (k, v) for k, v in scope.get("headers", [])
+                if k.lower() != b"host"
+            ]
+            new_headers.append((b"host", b"localhost:8000"))
+            scope = {**scope, "headers": new_headers}
+        await mcp_asgi(scope, receive, send)
+
+    return host_header_fix
 
 
 def get_mcp_session_manager():

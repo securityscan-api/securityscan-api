@@ -100,5 +100,5 @@ def get_usage_count(db: Session, user_id: str, action: str = "SCAN") -> int:
     return db.query(UsageLog).filter(
         UsageLog.user_id == user_id,
         UsageLog.action == action,
-        UsageLog.timestamp >= start_of_month
+        UsageLog.created_at >= start_of_month
     ).count()

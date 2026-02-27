@@ -62,7 +62,8 @@ class ClaudeAnalyzer:
                 content = content[:-3]
             content = content.strip()
 
-            result = json.loads(content)
+            # Use raw_decode to handle extra data after first JSON object
+            result, _ = json.JSONDecoder().raw_decode(content)
 
             for item in result.get("issues", []):
                 issues.append(Issue(

@@ -20,7 +20,7 @@ def find_line_number(code: str, match_start: int) -> int:
     return code[:match_start].count('\n') + 1
 
 
-# === OpenClaw Skill Detectors ===
+# === Skill Security Detectors ===
 
 def detect_hardcoded_credentials(code: str, filename: str) -> List[Issue]:
     """Detect hardcoded API keys, passwords, tokens."""

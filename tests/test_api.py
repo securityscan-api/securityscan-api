@@ -65,7 +65,7 @@ def test_scan_requires_auth():
     response = client.post("/scan", json={
         "skill_url": "https://github.com/octocat/Hello-World"
     })
-    assert response.status_code == 422  # Missing X-API-Key header
+    assert response.status_code == 401  # Missing X-API-Key header
 
 
 def test_scan_with_invalid_api_key():
@@ -192,4 +192,4 @@ def test_usage_after_scan():
 
 def test_usage_requires_auth():
     response = client.get("/usage")
-    assert response.status_code == 422  # Missing header
+    assert response.status_code == 401  # Missing header

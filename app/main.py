@@ -66,6 +66,78 @@ def root():
     return {"status": "ok"}  # Don't reveal service name or version
 
 
+@app.get("/quickstart")
+def quickstart():
+    return {
+        "service": "SecurityScan API",
+        "description": "AI skill security analysis — detects vulnerabilities, malicious patterns and supply chain risks in GitHub-hosted skills.",
+        "base_url": "https://apisecurityscan.net",
+        "authentication": {
+            "header": "X-API-Key: <api_key>",
+            "key_format": "ss_live_...",
+            "note": "Register first to obtain a free API key. Key is returned immediately at registration.",
+        },
+        "steps": [
+            {
+                "step": 1,
+                "action": "Register and get a free API key",
+                "method": "POST",
+                "endpoint": "/auth/register",
+                "body": {
+                    "agent_id": "your-agent-id@yourdomain.com",
+                    "plan": "FREE",
+                },
+                "note": "FREE plan includes 5 scans/month. Use agent_id for AI agents or email for human users.",
+                "response": {
+                    "api_key": "ss_live_... — save this key",
+                    "plan": "FREE",
+                    "scans_remaining": 5,
+                },
+            },
+            {
+                "step": 2,
+                "action": "Upgrade plan (optional)",
+                "method": "POST",
+                "endpoint": "/billing/upgrade",
+                "headers": {"X-API-Key": "ss_live_..."},
+                "body": {"plan": "PAY_PER_SCAN"},
+                "plans": {
+                    "FREE": "5 scans/month — no payment required",
+                    "PAY_PER_SCAN": "MXN $2/scan — pay only for what you use",
+                    "PRO": "MXN $399/month — unlimited scans",
+                },
+                "response": {
+                    "checkout_url": "Open this URL to complete payment",
+                },
+            },
+            {
+                "step": 3,
+                "action": "Scan a skill",
+                "method": "POST",
+                "endpoint": "/scan",
+                "headers": {"X-API-Key": "ss_live_..."},
+                "body": {"skill_url": "https://github.com/owner/repo"},
+                "important": [
+                    "skill_url must be a github.com URL — not raw.githubusercontent.com",
+                    "The scanner fetches and analyzes the repository code",
+                ],
+                "response_fields": {
+                    "score": "0-100 safety score",
+                    "recommendation": "SAFE | CAUTION | DANGEROUS",
+                    "issues": "List of detected issues with severity and line numbers",
+                    "cached": "true if result is from cache (faster, no credit consumed)",
+                },
+            },
+        ],
+        "common_errors": {
+            "401 API key required": "Missing X-API-Key header",
+            "401 Invalid API key": "Key not found — register first at /auth/register",
+            "403 Scan limit reached": "Upgrade plan at /billing/upgrade",
+            "fetch_error in issues": "Repository not accessible — check the URL is public and uses github.com format",
+        },
+    }
+
+
 # Include routers (admin routes hidden from schema in production)
 app.include_router(auth_router)
 app.include_router(scan_router)

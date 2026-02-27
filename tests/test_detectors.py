@@ -10,7 +10,7 @@ from app.scanner.detectors import (
 )
 
 
-# === OpenClaw Skill Tests ===
+# === Skill Security Detector Tests ===
 
 def test_detect_hardcoded_api_key():
     code = '''

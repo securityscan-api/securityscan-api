@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class RegisterRequest(BaseModel):
-    # Accepts human emails OR agent identifiers (e.g. "agent-uuid@openclaw.ai")
+    # Accepts human emails OR agent identifiers
     # Any non-empty string is valid — no EmailStr restriction
     agent_id: str = ""
     email: str = ""  # Kept for backward compatibility
