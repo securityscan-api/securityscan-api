@@ -27,7 +27,7 @@ class StripeService:
       session = stripe.checkout.Session.create(
           customer=customer_id,
           payment_method_types=["card"],
-          line_items=[{"price": config["price_id"], "quantity": 1}],
+          line_items=[{"price": config["price_id"], "quantity": 5 if plan == "PAY_PER_SCAN" else 1}],
           mode=config["mode"],
           success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
           cancel_url=cancel_url,
