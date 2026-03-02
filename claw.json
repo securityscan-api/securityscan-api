@@ -5,7 +5,7 @@
   "author": "securityscan",
   "license": "MIT",
   "permissions": ["network"],
-  "entry": "instructions.md",
+  "entry": "skill/instructions.md",
   "tags": ["security", "safety", "verification", "audit", "protection", "skills", "clawhub"],
   "models": ["claude-*", "gpt-*", "gemini-*"],
   "minOpenClawVersion": "0.8.0",

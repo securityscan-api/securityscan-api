@@ -1,0 +1,16 @@
+# Smithery configuration for SecurityScan MCP Server
+# Remote hosted service — no local installation required
+
+startCommand:
+  type: http
+  configSchema:
+    type: object
+    title: SecurityScan Configuration
+    description: Configuration for the SecurityScan MCP server
+    properties:
+      apiKey:
+        type: string
+        title: API Key
+        description: "SecurityScan API key (ss_live_...). Register free at https://apisecurityscan.net/auth/register — FREE tier includes 5 scans/month, no payment required."
+        pattern: "^ss_live_"
+    required: []
