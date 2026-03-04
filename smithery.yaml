@@ -13,4 +13,5 @@ startCommand:
         title: API Key
         description: "SecurityScan API key (ss_live_...). Register free at https://apisecurityscan.net/auth/register — FREE tier includes 5 scans/month, no payment required."
         pattern: "^ss_live_"
-    required: []
+    required:
+      - apiKey
