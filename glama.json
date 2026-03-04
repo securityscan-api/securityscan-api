@@ -1,4 +1,8 @@
 {
-  "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["securityscan-api"]
+  "$schema": "https://glama.ai/mcp/schemas/connector.json",
+  "maintainers": [
+    {
+      "email": "admin@apisecurityscan.net"
+    }
+  ]
 }
