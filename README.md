@@ -36,7 +36,7 @@ Register instantly — no payment required for the free tier:
 ```bash
 curl -X POST https://apisecurityscan.net/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"agent_id": "your-agent@yourdomain.com", "plan": "FREE"}'
+  -d '{"email": "you@example.com", "name": "My Agent"}'
 ```
 
 Response:
@@ -150,7 +150,7 @@ SecurityScan exposes an MCP server at `https://apisecurityscan.net/mcp`:
 }
 ```
 
-Available tools: `scan_skill` · `get_report` · `check_certification` · `scan_deps`
+Available tools: `scan_skill` · `get_report` · `check_certification`
 
 ---
 
