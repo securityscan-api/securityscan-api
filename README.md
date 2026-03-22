@@ -6,6 +6,8 @@
 **Live endpoint:** https://apisecurityscan.net
 **Health check:** https://apisecurityscan.net/health
 
+[![securityscan MCP server](https://glama.ai/mcp/servers/securityscan-api/securityscan-api/badges/card.svg)](https://glama.ai/mcp/servers/securityscan-api/securityscan-api)
+
 ---
 
 ## Why this exists
